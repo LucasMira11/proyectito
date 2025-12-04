@@ -1,81 +1,121 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
+import webbrowser
 
-class AppEnvioMasivo:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Simulador de Envío Masivo")
-        self.root.geometry("450x420")
-        
-        self.destinatarios = []
+# -------------------------------------------------
+# Función para abrir WhatsApp con mensaje listo
+# -------------------------------------------------
+def enviar_mensaje(numero, mensaje):
+    mensaje_url = mensaje.replace(" ", "%20")
+    url = f"https://wa.me/{numero}?text={mensaje_url}"
+    webbrowser.open(url)
 
-        # Título
-        tk.Label(root, text="Simulador de Envío Masivo", font=("Arial", 16, "bold")).pack(pady=10)
+# -------------------------------------------------
+# Enviar mensaje al contacto elegido
+# -------------------------------------------------
+def enviar_individual():
+    seleccionado = lista_contactos.curselection()
+    if not seleccionado:
+        messagebox.showerror("Error", "Selecciona un contacto")
+        return
 
-        # Campo mensaje
-        tk.Label(root, text="Mensaje a enviar:").pack()
-        self.texto_mensaje = tk.Text(root, height=5, width=50)
-        self.texto_mensaje.pack()
+    nombre = lista_contactos.get(seleccionado)
+    numero = contactos[nombre]
 
-        # Lista destinatarios
-        tk.Label(root, text="Destinatarios:").pack(pady=5)
-        self.lista = tk.Listbox(root, width=50, height=8)
-        self.lista.pack()
+    mensaje = caja_mensaje.get("1.0", tk.END).strip()
+    if not mensaje:
+        messagebox.showerror("Error", "El mensaje está vacío")
+        return
 
-        # Botones
-        frame_btn = tk.Frame(root)
-        frame_btn.pack(pady=10)
+    enviar_mensaje(numero, mensaje)
+    messagebox.showinfo("Listo", f"Se abrió WhatsApp para enviar mensaje a {nombre}.")
 
-        tk.Button(frame_btn, text="Agregar destinatario", command=self.agregar_destinatario).grid(row=0, column=0, padx=5)
-        tk.Button(frame_btn, text="Eliminar seleccionado", command=self.eliminar_destinatario).grid(row=0, column=1, padx=5)
-        tk.Button(frame_btn, text="Enviar a todos", command=self.enviar).grid(row=0, column=2, padx=5)
+# -------------------------------------------------
+# Enviar mensaje a TODOS los contactos
+# -------------------------------------------------
+def enviar_todos():
+    mensaje = caja_mensaje.get("1.0", tk.END).strip()
+    if not mensaje:
+        messagebox.showerror("Error", "El mensaje está vacío")
+        return
 
-        tk.Button(root, text="Ver historial", command=self.ver_historial, width=20).pack(pady=5)
+    for nombre, numero in contactos.items():
+        enviar_mensaje(numero, mensaje)
 
-        self.historial = []
+    messagebox.showinfo("Listo", "Se abrió WhatsApp para todos los contactos.")
 
-    def agregar_destinatario(self):
-        nuevo = simpledialog.askstring("Nuevo destinatario", "Ingresa un nombre o usuario:")
-        if nuevo:
-            self.destinatarios.append(nuevo)
-            self.lista.insert(tk.END, nuevo)
+# -------------------------------------------------
+# Copiar mensaje al portapapeles
+# -------------------------------------------------
+def copiar_mensaje():
+    mensaje = caja_mensaje.get("1.0", tk.END).strip()
+    ventana.clipboard_clear()
+    ventana.clipboard_append(mensaje)
+    messagebox.showinfo("Copiado", "Mensaje copiado al portapapeles.")
 
-    def eliminar_destinatario(self):
-        sel = self.lista.curselection()
-        if sel:
-            idx = sel[0]
-            self.lista.delete(idx)
-            del self.destinatarios[idx]
+# -------------------------------------------------
+# Insertar mensajes rápidos
+# -------------------------------------------------
+def insertar_mensaje_rapido(texto):
+    caja_mensaje.delete("1.0", tk.END)
+    caja_mensaje.insert(tk.END, texto)
 
-    def enviar(self):
-        mensaje = self.texto_mensaje.get("1.0", tk.END).strip()
-        if not mensaje:
-            messagebox.showwarning("Advertencia", "El mensaje está vacío.")
-            return
-        
-        if not self.destinatarios:
-            messagebox.showwarning("Advertencia", "No hay destinatarios.")
-            return
+# -------------------------------------------------
+# Lista de contactos
+# (Podés agregar más)
+# -------------------------------------------------
+contactos = {
+    "lucas": "5491122607124"
+    
+}
 
-        resultado = "=== ENVÍO MASIVO SIMULADO ===\n"
-        for d in self.destinatarios:
-            resultado += f"Mensaje enviado a {d}\n"
+# -------------------------------------------------
+# Interfaz gráfica
+# -------------------------------------------------
+ventana = tk.Tk()
+ventana.title("WhatsApp Sender PRO")
+ventana.geometry("600x400")
+ventana.config(bg="#222222")
 
-        self.historial.append(resultado)
+# ---- Listbox de contactos ----
+tk.Label(ventana, text="Contactos:", fg="white", bg="#222222").place(x=20, y=10)
+lista_contactos = tk.Listbox(ventana, height=8, width=25)
+lista_contactos.place(x=20, y=40)
 
-        messagebox.showinfo("Resultado", f"Se enviaron {len(self.destinatarios)} mensajes (simulación).")
+for nombre in contactos:
+    lista_contactos.insert(tk.END, nombre)
 
-    def ver_historial(self):
-        ventana = tk.Toplevel(self.root)
-        ventana.title("Historial de envíos")
-        ventana.geometry("400x300")
+# ---- Caja de mensaje ----
+tk.Label(ventana, text="Mensaje:", fg="white", bg="#222222").place(x=250, y=10)
+caja_mensaje = tk.Text(ventana, width=40, height=8)
+caja_mensaje.place(x=250, y=40)
 
-        text = tk.Text(ventana)
-        text.pack(expand=True, fill="both")
+# ---- Botones de acción ----
+btn_enviar = tk.Button(ventana, text="Enviar al contacto", width=20, command=enviar_individual)
+btn_enviar.place(x=20, y=220)
 
-        for item in self.historial:
-            text.insert(tk.END, item + "\n")
+btn_todos = tk.Button(ventana, text="Enviar a TODOS", width=20, command=enviar_todos)
+btn_todos.place(x=20, y=260)
 
+btn_copiar = tk.Button(ventana, text="Copiar mensaje", width=20, command=copiar_mensaje)
+btn_copiar.place(x=20, y=300)
+
+# ---- Mensajes predefinidos ----
+tk.Label(ventana, text="Mensajes rápidos:", fg="white", bg="#222222").place(x=250, y=220)
+
+btn_m1 = tk.Button(ventana, text="Hola, ¿cómo estás?", width=20,
+                   command=lambda: insertar_mensaje_rapido("Hola, ¿cómo estás?"))
+btn_m1.place(x=250, y=250)
+
+btn_m2 = tk.Button(ventana, text="¿Podemos hablar?", width=20,
+                   command=lambda: insertar_mensaje_rapido("¿Podemos hablar?"))
+btn_m2.place(x=250, y=280)
+
+btn_m3 = tk.Button(ventana, text="¡Buenas! Te quiero comentar algo...", width=25,
+                   command=lambda: insertar_mensaje_rapido("¡Buenas! Te quiero comentar algo..."))
+btn_m3.place(x=250, y=310)
+
+ventana.mainloop()
 
 # Ejecutar app
 root = tk.Tk()
